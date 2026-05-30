@@ -1,0 +1,170 @@
+select * from `workspace`.`default`.`car_sales`;
+
+
+
+
+CREATE OR REPLACE VIEW car_sales_clean AS
+SELECT
+    CAST(year AS INT) AS year,
+    TRIM(make) AS make,
+    TRIM(model) AS model,
+    TRIM(trim) AS trim,
+    TRIM(body) AS body,
+    LOWER(transmission) AS transmission,
+    vin,
+    UPPER(state) AS state,
+    CAST(condition AS INT) AS vehicle_condition,
+    CAST(odometer AS INT) AS odometer,
+    LOWER(color) AS color,
+    LOWER(interior) AS interior,
+    seller,
+    TO_TIMESTAMP(
+    CONCAT(
+      SPLIT(saledate, ' ')[3], '-',
+      CASE SPLIT(saledate, ' ')[1]
+        WHEN 'Jan' THEN '01'
+        WHEN 'Feb' THEN '02'
+        WHEN 'Mar' THEN '03'
+        WHEN 'Apr' THEN '04'
+        WHEN 'May' THEN '05'
+        WHEN 'Jun' THEN '06'
+        WHEN 'Jul' THEN '07'
+        WHEN 'Aug' THEN '08'
+        WHEN 'Sep' THEN '09'
+        WHEN 'Oct' THEN '10'
+        WHEN 'Nov' THEN '11'
+        WHEN 'Dec' THEN '12'
+      END, '-',
+      LPAD(SPLIT(saledate, ' ')[2], 2, '0'),
+      ' ',
+      SPLIT(saledate, ' ')[4]
+    ),
+    'yyyy-MM-dd HH:mm:ss'
+  ) AS sale_date,
+    
+   --saledate AS sale_date,
+    CAST(mmr AS DOUBLE) AS mmr,
+    CAST(sellingprice AS DOUBLE) AS selling_price
+    
+
+FROM car_sales
+WHERE sellingprice IS NOT NULL
+AND year IS NOT NULL
+AND make IS NOT NULL
+AND model IS NOT NULL;
+
+
+SELECT *
+
+FROM car_sales_clean;
+
+SELECT sale_date
+FROM car_sales_clean
+LIMIT 10;
+SELECT *
+FROM car_sales_clean
+WHERE
+year IS NULL
+OR make IS NULL
+OR model IS NULL
+OR trim IS NULL
+OR body IS NULL
+OR transmission IS NULL
+OR vin IS NULL
+OR state IS NULL
+OR vehicle_condition IS NULL
+OR odometer IS NULL
+OR color IS NULL
+OR interior IS NULL
+OR seller IS NULL
+OR mmr IS NULL
+OR selling_price IS NULL
+OR sale_date IS NULL;
+
+
+
+
+SELECT *,
+1 AS units_sold,
+YEAR(sale_date) AS sale_year,
+ DATE_FORMAT(sale_date, 'MMMM') AS sale_month,
+  DATE_FORMAT(sale_date, 'EEEE') AS sale_day,
+  HOUR(sale_date) AS sale_hour,
+  CASE
+WHEN HOUR(sale_date) < 12 THEN 'Morning'
+WHEN HOUR(sale_date) < 17 THEN 'Afternoon'
+ELSE 'Evening'
+END AS time_bucket,
+  --YEAR(sale_date)-year AS vehicle_age,
+CASE
+WHEN odometer < 50000 THEN 'Low Mileage'
+WHEN odometer < 100000 THEN 'Medium Mileage'
+ELSE 'High Mileage'
+END AS mileage_bucket,
+CASE
+WHEN selling_price < 10000 THEN 'Budget'
+WHEN selling_price < 30000 THEN 'Mid Range'
+ELSE 'Premium'
+END AS price_category,
+selling_price * 1 AS total_revenue,
+(selling_price - mmr) AS profit,
+((selling_price-mmr)/selling_price)*100 AS profit_margin,
+CASE
+WHEN ((selling_price - mmr) / selling_price) * 100 >= 15 THEN 'High Margin'
+WHEN ((selling_price - mmr) / selling_price) * 100 >= 5 THEN 'Medium Margin'
+ELSE 'Low Margin'
+END AS performance_tier
+FROM car_sales_clean;
+
+SELECT
+make,
+model,
+state AS region,
+SUM(selling_price) AS total_revenue,
+COUNT(*) AS cars_sold
+FROM car_sales_clean
+GROUP BY make, model, state
+ORDER BY total_revenue DESC;
+
+
+
+
+
+
+
+
+
+
+
+
+
+SELECT *,
+1 AS units_sold,
+YEAR(sale_date) AS sale_year,
+ DATE_FORMAT(sale_date, 'MMMM') AS sale_month,
+  DATE_FORMAT(sale_date, 'EEEE') AS sale_day,
+    CASE
+WHEN HOUR(sale_date) < 12 THEN 'Morning'
+WHEN HOUR(sale_date) < 17 THEN 'Afternoon'
+ELSE 'Evening'
+END AS time_bucket,
+  --YEAR(sale_date)-year AS vehicle_age,
+CASE
+WHEN odometer < 50000 THEN 'Low Mileage'
+WHEN odometer < 100000 THEN 'Medium Mileage'
+ELSE 'High Mileage'
+END AS mileage_bucket,
+CASE
+WHEN selling_price < 10000 THEN 'Budget'
+WHEN selling_price < 30000 THEN 'Mid Range'
+ELSE 'Premium'
+END AS price_category,
+selling_price * 1 AS total_revenue,
+(selling_price - mmr) AS profit,
+((selling_price-mmr)/selling_price)*100 AS profit_margin,
+CASE
+WHEN ((selling_price - mmr) / selling_price) * 100 >= 15 THEN 'High Margin'
+WHEN ((selling_price - mmr) / selling_price) * 100 >= 5 THEN 'Medium Margin'
+ELSE 'Low Margin'
+END AS performance_tier
+FROM car_sales_clean;
